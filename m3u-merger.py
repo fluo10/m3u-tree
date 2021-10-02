@@ -21,7 +21,8 @@ for dir in args.directory:
 # for dir in file:
 #     targetDirs.append(dir)
 
-
+m3u_pattern = re.compile('.*\.m3u')
+hidden_m3u_pattern =  re.compile('\..*\.m3u')
 
 class MyPlaylist:
     def __init__(self, name):
@@ -37,14 +38,14 @@ class MyPlaylist:
             print('compare')
 
 def compile_m3u(targetDirPath):
+    
     if not os.path.isdir(targetDirPath):
         print('Error: ' +targetDirPath + ' is not directory')
 
     for dirPath, dirList, fileList in os.walk(targetDirPath):
         # print(dirPath)
         for fileName in fileList:
-            if re.fullmatch(r'\..*\.m3u', fileName) :
-            #if fileName.endswith('.m3u'):
+            if hidden_m3u_pattern.fullmatch(fileName) :
                 if args.verbose :
                     print(fileName)
 
