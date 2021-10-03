@@ -16,19 +16,28 @@ class Playlist:
         self.path = path
         self.name = name
         self.tracks = set()
-    def add_track(self, track):
-        self.tracks.add(track)
-    def read_tracks(self):
-        dir = os.path.dirname(self.path)
+    def read_tracks(self, rootdir = ''):
         f = open(self.path, 'r', errors='replace')
         while True:
             line = f.readline().rstrip()
             if line == '':
                 break
+
             if os.path.isabs(line):
-                self.tracks.add(line)
+                abspath = line
+            else: 
+                abspath = os.path.abspath(os.path.join( \
+                    os.path.dirname(self.path), line))
+            if rootdir == '':
+                path = abspath
             else:
-                self.tracks.add(os.path.abspath(os.path.join(dir, line)))   
+                path = os.path.relpath(os.path.join(abspath, rootdir))
+            self.tracks.add(path)
+    def write_tracks(self):
+        dir = os.path.dirname(self.path)
+        f = open(self.path, 'w')
+
+
     def compare(self, another):
         if args.verbose :
             print('compare')
@@ -52,9 +61,9 @@ class PlaylistTree:
         self.branch_playlists = []
         self.branch_tracks = set()
 #    def read_contents(self):
-    def read_tracks(self):
+    def read_tracks(self, rootdir = ''):
         if not self.root_playlist is None: 
-            self.root_playlist.read_tracks()
+            self.root_playlist.read_tracks(rootdir)
         for playlist in self.branch_playlists:
             playlist.read_tracks()
             self.branch_tracks = self.branch_tracks |  playlist.tracks
@@ -123,7 +132,7 @@ class PlaylistTrees:
 
     def read_tracks(self):
         for tree in self.tree_dict.values():
-            tree.read_tracks()
+            tree.read_tracks(self.root)
 
     def parse_tree_dict(self, path):
         dir = os.path.dirname(path)
