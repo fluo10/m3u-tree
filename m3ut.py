@@ -31,12 +31,16 @@ class Playlist:
             if rootdir == '':
                 path = abspath
             else:
-                path = os.path.relpath(os.path.join(abspath, rootdir))
+                path = os.path.relpath(abspath, rootdir)
             self.tracks.add(path)
+        f.close()
+
     def write_tracks(self):
         dir = os.path.dirname(self.path)
         f = open(self.path, 'w')
-
+        lines = map(lambda x: x + "\n", self.tracks)
+        f.writelines(lines)
+        f.close()
 
     def compare(self, another):
         if args.verbose :
@@ -65,7 +69,7 @@ class PlaylistTree:
         if not self.root_playlist is None: 
             self.root_playlist.read_tracks(rootdir)
         for playlist in self.branch_playlists:
-            playlist.read_tracks()
+            playlist.read_tracks(rootdir)
             self.branch_tracks = self.branch_tracks |  playlist.tracks
 
 
@@ -109,9 +113,13 @@ class PlaylistTree:
         print('  Delete:')
         for track in root_tracks - self.branch_tracks:
             print('    ' + track)
-
+    def compile(self):
+        if self.root_playlist is None:
+            self.root_playlist = Playlist(os.path.join(args.directory, self.name + '.m3u'),self.name)
         
-    
+        self.root_playlist.tracks = self.branch_tracks
+        self.root_playlist.write_tracks()
+
 class PlaylistTrees:
     def __init__(self, args):
         self.root = args.directory
@@ -162,14 +170,15 @@ class PlaylistTrees:
             tree.diff()
 
     def compile(self):
-        print()
+        for tree in self.tree_dict.values():
+            tree.compile()
 
 playlist_dict = {}
 
 
 def m3ut_compile(args):
     print('m3u-tools compile')
-    load_m3u(args.directory)
+    PlaylistTrees(args).compile()
 
 def m3ut_show(args):
     print('m3u-tools show')
