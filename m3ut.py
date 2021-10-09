@@ -9,7 +9,7 @@ import re
 # for dir in file:
 #     targetDirs.append(dir)
 
-m3u_pattern =  re.compile('(?P<hidden_prefix>\.|)(?P<playlist_name>.*)\.m3u')
+#m3u_pattern =  re.compile('(?P<hidden_prefix>\.|)(?P<playlist_name>.*)\.m3u')
 
 class Playlist:
     def __init__(self, path, name):
@@ -113,16 +113,16 @@ class PlaylistTree:
         print('  Delete:')
         for track in root_tracks - self.branch_tracks:
             print('    ' + track)
-    def compile(self):
+    def join(self):
         if self.root_playlist is None:
-            self.root_playlist = Playlist(os.path.join(args.directory, self.name + '.m3u'),self.name)
+            self.root_playlist = Playlist(os.path.join(args.library_path, args.playlist_dirname, self.name + '.m3u'),self.name)
         
         self.root_playlist.tracks = self.branch_tracks
         self.root_playlist.write_tracks()
 
 class PlaylistTrees:
     def __init__(self, args):
-        self.root = args.directory
+        self.root = args.library_path
         self.prefix = args.tree_prefix
         self.suffix = args.tree_suffix
         self.tree_dict = None
@@ -144,8 +144,9 @@ class PlaylistTrees:
 
     def parse_tree_dict(self, path):
         dir = os.path.dirname(path)
+        
         file = os.path.basename(path)
-        if (not(file.startswith(self.prefix) and file.endswith(self.suffix))) and (not (file.endswith('.m3u') and os.path.samefile(dir, self.root))):
+        if (not(file.startswith(self.prefix) and file.endswith(self.suffix))) and (not (file.endswith('.m3u') and os.path.samefile(dir, os.path.join(self.root, args.playlist_dirname)))):
             return
         
         playlist_name = file.removeprefix(self.prefix).removesuffix(self.suffix).removesuffix('.m3u')
@@ -169,16 +170,16 @@ class PlaylistTrees:
         for tree in self.tree_dict.values():
             tree.diff()
 
-    def compile(self):
+    def join(self):
         for tree in self.tree_dict.values():
-            tree.compile()
+            tree.join()
 
 playlist_dict = {}
 
 
-def m3ut_compile(args):
-    print('m3u-tools compile')
-    PlaylistTrees(args).compile()
+def m3ut_join(args):
+    print('m3u-tools join')
+    PlaylistTrees(args).join()
 
 def m3ut_show(args):
     print('m3u-tools show')
@@ -189,7 +190,7 @@ def m3ut_diff(args):
 
 def m3ut_check(args):
     print('m3u-tools check')
-    print(load_m3u(args.directory))
+    print(load_m3u(args.library_path))
 
 def m3ut_split(args):
     print('m3u-tools split')
@@ -200,8 +201,8 @@ def m3ut_fix(args):
 parser = argparse.ArgumentParser(description='Merging same name m3u files')
 subparsers = parser.add_subparsers(help='sub-command help')
 
-parser_compile = subparsers.add_parser('compile', help='compile help')
-parser_compile.set_defaults(func=m3ut_compile)
+parser_join = subparsers.add_parser('join', help='join help')
+parser_join.set_defaults(func=m3ut_join)
 
 parser_check = subparsers.add_parser('check', help='check help')
 parser_check.set_defaults(func=m3ut_check)
@@ -218,11 +219,12 @@ parser_show.set_defaults(func=m3ut_show)
 parser_show = subparsers.add_parser('diff', help='diff help')
 parser_show.set_defaults(func=m3ut_diff)
 
-parser.add_argument('-d', '--directory', default='~/Music', help='Root directory to save merged m3u file.')
+parser.add_argument('-l', '--library-path', default='~/Music', help='Root directory to save merged m3u file.')
+parser.add_argument('-p', '--playlist-dirname', default='Playlists')
 parser.add_argument('-n', '--dry-run', action='store_true')
 parser.add_argument('-v', '--verbose', action='store_true')
 parser.add_argument('-s', '--tree-suffix', default='.part')
-parser.add_argument('-p', '--tree-prefix', default='')
+parser.add_argument('-P', '--tree-prefix', default='')
 
 args = parser.parse_args()
 args.func(args)
