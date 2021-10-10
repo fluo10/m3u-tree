@@ -219,12 +219,17 @@ parser_show.set_defaults(func=m3ut_show)
 parser_show = subparsers.add_parser('diff', help='diff help')
 parser_show.set_defaults(func=m3ut_diff)
 
-parser.add_argument('-l', '--library-path', default='~/Music', help='Root directory to save merged m3u file.')
-parser.add_argument('-p', '--playlist-dirname', default='Playlists')
-parser.add_argument('-n', '--dry-run', action='store_true')
-parser.add_argument('-v', '--verbose', action='store_true')
-parser.add_argument('-s', '--tree-suffix', default='.part')
-parser.add_argument('-P', '--tree-prefix', default='')
+# Set common arguments
+for subparser in subparsers.choices.values():
+    subparser.add_argument('-l', '--library-path', default='~/Music', help='Root directory to save merged m3u file.')
+    subparser.add_argument('-p', '--playlist-dirname', default='Playlists')
+    subparser.add_argument('-n', '--dry-run', action='store_true')
+    subparser.add_argument('-v', '--verbose', action='store_true')
+    subparser.add_argument('-s', '--tree-suffix', default='.part')
+    subparser.add_argument('-P', '--tree-prefix', default='')
 
 args = parser.parse_args()
-args.func(args)
+if hasattr(args, 'func'):
+    args.func(args)
+else:
+    parser.print_help()
