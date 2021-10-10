@@ -3,7 +3,7 @@ import sys
 import argparse
 import os
 import re
-
+import glob
 
 # import file
 # for dir in file:
@@ -34,17 +34,22 @@ class Playlist:
                 path = os.path.relpath(abspath, rootdir)
             self.tracks.add(path)
         f.close()
-
+        
     def write_tracks(self):
         dir = os.path.dirname(self.path)
         f = open(self.path, 'w')
         lines = map(lambda x: x + "\n", self.tracks)
         f.writelines(lines)
         f.close()
+    def add_track(self,path):
+        self.tracks.add(path)
 
     def compare(self, another):
         if args.verbose :
             print('compare')
+    def exists(self):
+        return os.path.isfile(self.path)
+
     def is_branch(self):
         return os.path.basename(self.path).removesuffix('.m3u') != self.name
     def show_summary(self, prefix):
@@ -198,35 +203,70 @@ def m3ut_split(args):
 def m3ut_fix(args):
     print('m3u-tools fix')
 
+def m3ut_add_track(args):
+        
+    for track in args.tracks:
+        if os.path.isfile(track):
+            track_path = track
+        else:
+            tmp = glob.glob(track + '*')
+            if len(tmp) == 1:
+                track_path = tmp[0]
+            else:
+                print('Track "' + track + '" is not one track')
+                continue    
+        for playlist_name in args.playlists:
+            if os.path.dirname(playlist_name) == '':
+                playlist_path = os.path.join(os.path.dirname(track_path), playlist_name)
+            else:
+                playlist_path = playlist_name
+            playlist = Playlist(playlist_path, os.path.basename(playlist_path))
+            playlist.add_track(track_path)
+            playlist.write_tracks()
+            print('Add "' + track_path + '" to "' + playlist_path + '"')
+
+    
+
 parser = argparse.ArgumentParser(description='Merging same name m3u files')
 subparsers = parser.add_subparsers(help='sub-command help')
 
-parser_join = subparsers.add_parser('join', help='join help')
+parser_join = subparsers.add_parser('join', help='Join playlists with the same name')
 parser_join.set_defaults(func=m3ut_join)
 
-parser_check = subparsers.add_parser('check', help='check help')
+parser_check = subparsers.add_parser('check', help='Check playlists')
 parser_check.set_defaults(func=m3ut_check)
 
-parser_split = subparsers.add_parser('split', help='split help')
+parser_split = subparsers.add_parser('split', help='Split playlists to each directory including tracks')
 parser_split.set_defaults(func=m3ut_split)
 
-parser_fix = subparsers.add_parser('fix', help='fix help')
+parser_fix = subparsers.add_parser('fix', help='Fix path of missing tracks')
 parser_fix.set_defaults(func=m3ut_fix)
 
-parser_show = subparsers.add_parser('show', help='show help')
+parser_show = subparsers.add_parser('show', help='Show list of playlist')
 parser_show.set_defaults(func=m3ut_show)
 
-parser_show = subparsers.add_parser('diff', help='diff help')
+parser_show = subparsers.add_parser('diff', help='Show differences of track between branch and root')
 parser_show.set_defaults(func=m3ut_diff)
+
+# parser_branch = subparsers.add_parser('branch', help='Managing branch playlists')
+# branch_subparsers = parser_branch.add_subparsers(help='branch sub-command help')
+# branch_subparsers.add_parser('Add')
 
 # Set common arguments
 for subparser in subparsers.choices.values():
-    subparser.add_argument('-l', '--library-path', default='~/Music', help='Root directory to save merged m3u file.')
-    subparser.add_argument('-p', '--playlist-dirname', default='Playlists')
+    subparser.add_argument('-l', '--library-path', default='~/Music', help='Target music library')
+    subparser.add_argument('-p', '--playlist-dirname', default='Playlists', help='Directory name to save joined playlists')
     subparser.add_argument('-n', '--dry-run', action='store_true')
     subparser.add_argument('-v', '--verbose', action='store_true')
-    subparser.add_argument('-s', '--tree-suffix', default='.part')
-    subparser.add_argument('-P', '--tree-prefix', default='')
+    subparser.add_argument('-s', '--tree-suffix', default='.part', help='Suffic to determine whether branch playlist')
+    subparser.add_argument('-P', '--tree-prefix', default='', help='Prefix to determine whether branch playlist')
+
+parser_add_track = subparsers.add_parser('add-track', help='Add track to branch playlist')
+parser_add_track.set_defaults(func=m3ut_add_track)
+parser_add_track.add_argument('-p', '--playlists', nargs='*', help='Target playlist')
+parser_add_track.add_argument('-t', '--tracks', nargs='*', help='Target tracks')
+parser_add_track.add_argument('-s', '--tree-suffix', default='.part', help='Suffic to determine whether branch playlist')
+parser_add_track.add_argument('-P', '--tree-prefix', default='', help='Prefix to determine whether branch playlist')
 
 args = parser.parse_args()
 if hasattr(args, 'func'):
